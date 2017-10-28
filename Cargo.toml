@@ -1,0 +1,26 @@
+[package]
+name = "ai-gen-connect-four"
+version = "0.1.0"
+authors = ["FlixCoder"]
+
+[dependencies]
+rand = "0.3.*"
+serde = "1.*"
+serde_derive = "1.*"
+serde_json = "1.*"
+
+
+[profile.dev]
+opt-level = 3
+debug = true
+lto = true
+panic = "unwind"
+debug-assertions = true
+
+[profile.release]
+opt-level = 3
+debug = false
+lto = true
+panic = "unwind"
+debug-assertions = false
+

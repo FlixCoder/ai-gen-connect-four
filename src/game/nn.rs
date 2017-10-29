@@ -10,13 +10,9 @@ extern crate rand;
 
 use std::iter::{Zip, Enumerate};
 use std::slice;
+use std::cmp::Ordering;
 use self::rand::Rng;
 use self::rand::distributions::{Normal, IndependentSample};
-
-const DEFAULT_LEARNING_RATE:f64 = 0.3;
-const DEFAULT_LAMBDA:f64 = 0.0;
-const DEFAULT_MOMENTUM:f64 = 0.0;
-const DEFAULT_EPOCHS:u32 = 1000;
 
 //values for a (0,1) distribution (so (-1, 1) interval in standard deviation)
 //const SELU_FACTOR_A:f64 = 1.0507; //greater than 1, lambda in https://arxiv.org/pdf/1706.02515.pdf
@@ -193,28 +189,149 @@ impl NN
         results
     }
 	
-    //generate mutated version of current network
-	//ideas to add: change activation function or at least activation function parameters,
-	//			still use backprop for something to speed up calculation
-	//			sometimes return a completely fresh initialized network?
-	//params: (all probabilities in [0,1])
-	//prob_op:f64 - probability to apply an addition/substraction to a node
-	//op_range:f64 - maximum positive or negative adjustment of a weight
-	//prob_block:f64 - probability to add another residual block (2 layers) somewhere in the network, initially identity, random prob_op afterwards
-    pub fn generate_mutation(&self, prob_op:f64, op_range:f64, prob_block:f64)
+	fn get_layers_mut(&mut self) -> &mut Vec<Vec<Vec<f64>>>
+	{
+		&mut self.layers
+	}
+	
+	fn get_layers(&self) -> &Vec<Vec<Vec<f64>>>
+	{
+		&self.layers
+	}
+	
+	fn get_hid_act(&self) -> u32
+	{
+		self.hid_act
+	}
+	
+	fn get_out_act(&self) -> u32
+	{
+		self.out_act
+	}
+	
+	fn set_hid_act(&mut self, act:u32)
+	{
+		self.hid_act = act;
+	}
+	
+	fn set_out_act(&mut self, act:u32)
+	{
+		self.out_act = act;
+	}
+	
+	pub fn get_gen(&self) -> u32
+	{
+		self.generation
+	}
+	
+	fn set_gen(&mut self, gen:u32)
+	{
+		self.generation = gen;
+	}
+	
+	pub fn get_blocks(&self) -> u32
+	{
+		self.blocks
+	}
+	
+	//breed a child from 2 networks. either by random select or by averaging weights
+	//panics if the neural nets don't have the same size
+	pub fn breed(&self, other:&NN, prob_avg:f64) -> NN
 	{
 		let mut rng = rand::thread_rng();
 		let mut newnn = self.clone();
-		newnn.increment_generation();
-		//random residual block addition
-		if rng.gen::<f64>() < prob_block
-		{
-			newnn.mutate_block();
+		
+		//set generation
+		let oldgen = newnn.get_gen();
+		newnn.set_gen((other.get_gen() + oldgen + 3) / 2); //round up and + 1
+		
+		//set activation functions
+		if rng.gen::<f64>() < 0.5
+		{ //else is already set to own activation
+			newnn.set_hid_act(other.get_hid_act());
 		}
-		//random addition / substraction op
-		if prob_op != 0.0 && op_range != 0.0
-		{
-			newnn.mutate_op(prob_op, op_range);
+		if rng.gen::<f64>() < 0.5
+		{ //else is already set to own activation
+			newnn.set_out_act(other.get_out_act());
+		}
+		
+		//set parameters
+		{ //put it scope, because of mutable borrow before ownership return
+			let mut layers1 = newnn.get_layers_mut();
+			let layers2 = other.get_layers();
+			for layer_index in 0..layers1.len()
+			{
+				let mut layer = &mut layers1[layer_index];
+				for node_index in 0..layer.len()
+				{
+					let mut node = &mut layer[node_index];
+					for weight_index in 0..node.len()
+					{
+						if prob_avg == 1.0 || (prob_avg != 0.0 && rng.gen::<f64>() < prob_avg)
+						{ //average between weights
+							node[weight_index] = (node[weight_index] + layers2[layer_index][node_index][weight_index]) / 2.0;
+						}
+						else
+						{
+							if rng.gen::<f64>() < 0.5
+							{ //random if stay at current weight or take father's/mother's
+								node[weight_index] = layers2[layer_index][node_index][weight_index];
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		//return
+		newnn
+	}
+	
+    /// mutate the current network
+	/// params: (all probabilities in [0,1])
+	/// prob_op:f64 - probability to apply an addition/substraction to a node
+	/// op_range:f64 - maximum positive or negative adjustment of a weight
+	/// prob_block:f64 - probability to add another residual block (2 layers) somewhere in the network, initially identity, random prob_op afterwards
+	/// prob_new:f64 - probability to become a new freshly initialized network of same size/architecture (to change hidden size create one manually and don't breed them)
+	//ideas to add: change activation function or at least activation function parameters,
+	//			still use backprop for something to speed up calculation
+    pub fn mutate(&mut self, prob_op:f64, op_range:f64, prob_block:f64, prob_new:f64)
+	{
+		let mut rng = rand::thread_rng();
+		if rng.gen::<f64>() < prob_new
+		{ //fresh network parameters
+			self.generation /= 2; //as the blocks stay the same, don't set to 0, but decrease significantly
+			let mut init_std_scale = 2.0; //He init
+			if self.hid_act == 1 { init_std_scale = 1.0; } //MSRA / Xavier init
+			let mut prev_layer_size = self.num_inputs as usize;
+			for layer_index in 0..self.layers.len()
+			{
+				let mut layer = &mut self.layers[layer_index];
+				let normal = Normal::new(0.0, (init_std_scale / prev_layer_size as f64).sqrt());
+				for node_index in 0..layer.len()
+				{
+					let mut node = &mut layer[node_index];
+					for weight_index in 0..node.len()
+					{
+						node[weight_index] = if weight_index == 0 { 0.0 } else { normal.ind_sample(&mut rng) };
+					}
+				}
+				prev_layer_size = layer.len();
+			}
+		}
+		else
+		{ //mutation
+			self.increment_generation();
+			//random residual block addition
+			if rng.gen::<f64>() < prob_block
+			{
+				self.mutate_block();
+			}
+			//random addition / substraction op
+			if prob_op != 0.0 && op_range != 0.0
+			{
+				self.mutate_op(prob_op, op_range);
+			}
 		}
     }
 	
@@ -338,4 +455,137 @@ fn iter_zip_enum<'s, 't, S: 's, T: 't>(s: &'s [S], t: &'t [T]) ->
     Enumerate<Zip<slice::Iter<'s, S>, slice::Iter<'t, T>>>
 {
     s.iter().zip(t.iter()).enumerate()
+}
+
+
+
+/// trait to define evaluators in order to use the algorithm in a flexible way
+pub trait Evaluator:Drop
+{
+	fn evaluate(&mut self, nn:&NN) -> f64; //returns rating of NN (higher is better (you can inverse with -))
+}
+
+/// Optimizer class to optimize neural nets by evolutionary / genetic algorithms
+pub struct Optimizer
+{
+	eval: Box<Evaluator>, //evaluator
+	nets: Vec<(NN, f64)>, //population of nets and ratings (sorted, high/best rating in front)
+}
+
+impl Optimizer
+{
+	/// create a new optimizer using the given evaluator for the given neural net
+	pub fn new(mut evaluator:Box<Evaluator>, nn:NN) -> Optimizer
+	{
+		let mut netvec = Vec::new();
+		let rating = evaluator.as_mut().evaluate(&nn);
+		netvec.push((nn, rating));
+		
+		Optimizer { eval: evaluator, nets: netvec }
+	}
+	
+	/// returns a mutable borrow of the evaluator to allow adjustments
+	pub fn get_eval(&mut self) -> &mut Evaluator
+	{
+		self.eval.as_mut()
+	}
+	
+	/// optimize the NN for the given number of generations
+	/// it is recommended to run a single generation with prob_mut = 1.0 and prob_new = 1.0 at the start to generate the starting population
+	/// returns the rating of the best NN afterwards
+	/// 
+	/// parameters: (probabilities are in [0,1])
+	/// generations - number of generations to optimize over
+	/// population - size of population to grow up to
+	/// survival - number nets to survive by best rating
+	/// bad_survival - number of nets to survive randomly from nets, that are not already selected to survive from best rating
+	/// prob_avg - probability to use average weight instead of selection in breeding
+	/// prob_mut - probability to mutate after breed
+	/// prob_op - probability for each weight to mutate using an delta math operation during mutation
+	/// op_range - factor to control the range in which delta can be in
+	/// prob_block - probability to add another residual block
+	/// prob_new - probability to generate a new random network
+	pub fn optimize(&mut self, generations:u32, population:u32, survival:u32, bad_survival:u32, prob_avg:f64, prob_mut:f64, prob_op:f64, op_range:f64, prob_block:f64, prob_new:f64) -> f64
+	{
+		//optimize for generations generations
+		for _ in 0..generations
+		{
+			let children = self.populate(population as usize, prob_avg, prob_mut, prob_op, op_range, prob_block, prob_new);
+			self.evaluate(children);
+			self.sort_nets();
+			self.survive(survival, bad_survival);
+			//self.sort_nets(); //not needed, because population generation is choosing randomly
+		}
+		//return best rating
+		self.sort_nets();
+		self.nets[0].1
+	}
+	
+	/// generates new population and returns a vec of nets, that need to be evaluated
+	fn populate(&self, size:usize, prob_avg:f64, prob_mut:f64, prob_op:f64, op_range:f64, prob_block:f64, prob_new:f64) -> Vec<NN>
+	{
+		let mut rng = rand::thread_rng();
+		let len = self.nets.len();
+		let missing = size - len;
+		let mut newpop = Vec::new();
+		
+		for _ in 0..missing
+		{
+			let i1:usize = rng.gen::<usize>() % len;
+			let i2:usize = rng.gen::<usize>() % len;
+			let othernn = &self.nets[i2].0;
+			let mut newnn = self.nets[i1].0.breed(othernn, prob_avg);
+			
+			if rng.gen::<f64>() < prob_mut
+			{
+				newnn.mutate(prob_op, op_range, prob_block, prob_new);
+			}
+			
+			newpop.push(newnn);
+		}
+		
+		newpop
+	}
+	
+	fn evaluate(&mut self, nets:Vec<NN>)
+	{
+		for nn in nets
+		{
+			let score = self.get_eval().evaluate(&nn);
+			self.nets.push((nn, score));
+		}
+	}
+	
+	fn survive(&mut self, survival:u32, bad_survival:u32)
+	{
+		if survival as usize >= self.nets.len() { return; } //already done
+		
+		let mut rng = rand::thread_rng();
+		let mut bad = self.nets.split_off(survival as usize);
+		
+		for _ in 0..bad_survival
+		{
+			if bad.is_empty() { return; }
+			let i:usize = rng.gen::<usize>() % bad.len();
+			self.nets.push(bad.swap_remove(i));
+		}
+	}
+	
+	/// clones the best NN an returns it
+	pub fn get_nn(&mut self) -> NN
+	{
+		self.nets[0].0.clone()
+	}
+	
+	fn sort_nets(&mut self)
+	{ //best nets (high score) in front, bad and NaN nets at the end
+		self.nets.sort_by(|ref r1, ref r2| {
+				let r = (r2.1).partial_cmp((&r1.1));
+				if r.is_some() { r.unwrap() }
+				else
+				{
+					if r1.1.is_nan() { if r2.1.is_nan() {Ordering::Equal} else {Ordering::Greater} } else { Ordering::Less }
+				}
+			});
+	}
 }

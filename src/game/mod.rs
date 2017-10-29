@@ -2,7 +2,6 @@
 
 pub mod field;
 pub mod player;
-pub mod nn;
 
 use self::field::Field;
 use self::player::Player;

@@ -234,8 +234,8 @@ impl NN
 		self.blocks
 	}
 	
-	//breed a child from 2 networks. either by random select or by averaging weights
-	//panics if the neural nets don't have the same size
+	///  breed a child from the 2 networks, either by random select or by averaging weights
+	/// panics if the neural net's hidden_size are not the same
 	pub fn breed(&self, other:&NN, prob_avg:f64) -> NN
 	{
 		let mut rng = rand::thread_rng();
@@ -256,7 +256,7 @@ impl NN
 		}
 		
 		//set parameters
-		{ //put it scope, because of mutable borrow before ownership return
+		{ //put in scope, because of mutable borrow before ownership return
 			let mut layers1 = newnn.get_layers_mut();
 			let layers2 = other.get_layers();
 			for layer_index in 0..layers1.len()
@@ -267,15 +267,21 @@ impl NN
 					let mut node = &mut layer[node_index];
 					for weight_index in 0..node.len()
 					{
+						let mut layer2val = 0.0;
+						if layer_index < layers2.len()
+						{ //simulate same network size by using zeros for the block
+							layer2val = layers2[layer_index][node_index][weight_index];
+						} //if layers2 is deeper than layers1, the shorter layers1 is taken and deeper layers ignored
+						
 						if prob_avg == 1.0 || (prob_avg != 0.0 && rng.gen::<f64>() < prob_avg)
 						{ //average between weights
-							node[weight_index] = (node[weight_index] + layers2[layer_index][node_index][weight_index]) / 2.0;
+							node[weight_index] = (node[weight_index] + layer2val) / 2.0;
 						}
 						else
 						{
 							if rng.gen::<f64>() < 0.5
 							{ //random if stay at current weight or take father's/mother's
-								node[weight_index] = layers2[layer_index][node_index][weight_index];
+								node[weight_index] = layer2val;
 							}
 						}
 					}
@@ -293,7 +299,7 @@ impl NN
 	/// op_range:f64 - maximum positive or negative adjustment of a weight
 	/// prob_block:f64 - probability to add another residual block (2 layers) somewhere in the network, initially identity, random prob_op afterwards
 	/// prob_new:f64 - probability to become a new freshly initialized network of same size/architecture (to change hidden size create one manually and don't breed them)
-	//ideas to add: change activation function or at least activation function parameters,
+	// ideas to add: change activation function or at least activation function parameters,
 	//			still use backprop for something to speed up calculation
     pub fn mutate(&mut self, prob_op:f64, op_range:f64, prob_block:f64, prob_new:f64)
 	{

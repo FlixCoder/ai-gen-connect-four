@@ -1,17 +1,21 @@
 #![allow(dead_code)]
 
+extern crate ernn;
+
 pub mod field;
 pub mod player;
 
+use self::ernn::NN;
 use self::field::Field;
 use self::player::Player;
 use self::player::io_player::PlayerIO;
 use self::player::random_player::PlayerRandom;
 use self::player::minimax_player::PlayerMinimax;
+use self::player::ai_value_player::PlayerAIValue;
 
 
 #[derive(Debug)]
-pub enum PlayerType {None, IO, Random, Minimax}
+pub enum PlayerType { None, IO, Random, Minimax, AIValue }
 
 pub struct Game
 {
@@ -36,6 +40,16 @@ impl Game
 			PlayerType::IO => Some(PlayerIO::new()),
 			PlayerType::Random => Some(PlayerRandom::new()),
 			PlayerType::Minimax => Some(PlayerMinimax::new()),
+			_ => None,
+		}
+	}
+	
+	fn map_player_nn(p:PlayerType, nn:NN) -> Option<Box<Player>>
+	{
+		match p
+		{
+			PlayerType::AIValue => Some(PlayerAIValue::new(nn)),
+			_ => None,
 		}
 	}
 	
@@ -57,6 +71,36 @@ impl Game
 	pub fn set_player2(&mut self, p:PlayerType) -> bool
 	{
 		self.p2 = Game::map_player(p);
+		
+		if self.p2.is_some()
+		{
+			if !self.p2.as_mut().unwrap().init(&self.field, 2)
+			{
+				self.p2 = None;
+				return false;
+			}
+		}
+		true
+	}
+	
+	pub fn set_player1_nn(&mut self, p:PlayerType, nn:NN) -> bool
+	{
+		self.p1 = Game::map_player_nn(p, nn);
+		
+		if self.p1.is_some()
+		{
+			if !self.p1.as_mut().unwrap().init(&self.field, 1)
+			{
+				self.p1 = None;
+				return false;
+			}
+		}
+		true
+	}
+	
+	pub fn set_player2_nn(&mut self, p:PlayerType, nn:NN) -> bool
+	{
+		self.p2 = Game::map_player_nn(p, nn);
 		
 		if self.p2.is_some()
 		{

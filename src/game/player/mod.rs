@@ -3,6 +3,7 @@
 pub mod io_player;
 pub mod random_player;
 pub mod minimax_player;
+pub mod ai_value_player;
 
 use super::field::Field;
 

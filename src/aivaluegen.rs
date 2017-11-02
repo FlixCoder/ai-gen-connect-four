@@ -59,15 +59,15 @@ pub fn battle(filename1:&str, filename2:&str)
 pub fn train(filename:&str, rounds:u32, gens:u32)
 {
 	//parameters for optimizer
-	let population = 40;
-	let survival = 10;
-	let badsurv = 5;
+	let population = 30;
+	let survival = 4;
+	let badsurv = 1;
 	let prob_avg = 0.1;
-	let prob_mut = 0.95;
-	let prob_op = 0.1;
-	let op_range = 0.2;
-	let prob_block = 0.2;
-	let prob_new = 0.05;
+	let prob_mut = 0.9;
+	let prob_op = 0.9;
+	let op_range = 0.5;
+	let prob_block = 0.05;
+	let prob_new = 0.1;
 	
 	//init NN and optimizer
 	let (mut num_gens, mut nn) = load_nn(filename);
@@ -185,23 +185,24 @@ impl Evaluator for AIValueEval
 		g.set_player2_nn(PlayerType::AIValue, nn.clone());
 		//play against random
 		g.set_player1(PlayerType::Random);
-		let (_, _, r) = g.play_many(250, 1); //1000?
+		let (_, d, mut r) = g.play_many(500, 1); //1000?
+		r += d / 2.0; //add draws as half
 		//play against minimax
 		g.set_player1(PlayerType::Minimax);
-		let (_, _, m) = g.play_many(2, 1);
+		let (_, d, mut m) = g.play_many(2, 1);
+		m += d / 2.0; //add draws as half
 		//play against cmp net
 		let mut c = 0.0;
 		for nn in &self.curr_cmp
 		{
 			g.set_player1_nn(PlayerType::AIValue, nn.clone());
-			let (_, _, cl) = g.play_many(2, 1);
-			c += cl;
-		}
-		c /= self.curr_cmp.len() as f64;
+			let (_, d, cl) = g.play_many(2, 1);
+			c += cl + d / 2.0; //add draws as half
+		} //no division by self.curr_cmp.len() to give more comparisons more weight
 		//score
-		let mut score = (r - 50.0) * 10.0; //better than random, but higher weight
-		score += m; //win against minimax
-		score += c / 50.0; //better than previous self versions, but not too strong weight
+		let mut score = (r - 50.0) * 20.0; //betternes against random, adjusted weight
+		score += m * 10.0; //betterness against minimax, adjusted weight
+		score += c / 50.0; //betterness against previous self versions, adjusted weight
 		//return
 		score
 	}

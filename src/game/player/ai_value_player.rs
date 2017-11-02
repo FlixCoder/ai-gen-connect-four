@@ -104,7 +104,7 @@ impl Player for PlayerAIValue
 		self.pid = p;
 		
 		let nn = self.nn.as_ref().unwrap();
-		if nn.get_outputs() == 1 && nn.get_inputs() == field.get_w() * field.get_h() && nn.get_hid_act() == Activation::Tanh
+		if nn.get_outputs() == 1 && nn.get_inputs() == field.get_w() * field.get_h() && nn.get_out_act() == Activation::Tanh
 		{
 			self.initialized = true;
 		}

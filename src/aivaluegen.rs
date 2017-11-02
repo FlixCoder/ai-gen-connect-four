@@ -52,21 +52,21 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 		score = opt.optimize(gens, population, survival, badsurv, prob_avg, prob_mut, prob_op, op_range, prob_block, prob_new);
 		println!("Generation score: {}", score);
 		nn = opt.get_nn();
-		eval.add_cmp(nn);
+		eval.add_cmp(nn); //moved
 		opt.set_eval(eval.clone());
 		score = opt.reevaluate();
+		//save NN
+		num_gens += gens;
+		nn = opt.get_nn();
+		save_nn(filename, num_gens, &nn);
 	}
 	println!("End score: {}", score);
 	let elapsed = now.elapsed();
 	let sec = (elapsed.as_secs() as f64) + (elapsed.subsec_nanos() as f64 / 1000_000_000.0);
 	println!("Time: {} min {:.3} s", (sec / 60.0).floor(), sec % 60.0);
 	
-	//save NN
-	num_gens += rounds * gens;
-	nn = opt.get_nn();
-	save_nn(filename, num_gens, &nn);
-	
 	//print information
+	nn = opt.get_nn();
 	println!("NN blocks: {}", nn.get_blocks());
 	println!("NN Gen/Opt Gen: {}/{}", nn.get_gen(), num_gens);
 }
@@ -80,7 +80,7 @@ fn load_nn(filename:&str) -> (u32, NN)
 	{
 		//create new neural net, as it could not be loaded
 		let n = 7*6;
-		nn = NN::new(n, 2*n, 1, Activation::PELU, Activation::Tanh);
+		nn = NN::new(n, 2*n, 1, Activation::PELU, Activation::Tanh); //set NN arch here
 		num_gens = 0;
 	}
 	else

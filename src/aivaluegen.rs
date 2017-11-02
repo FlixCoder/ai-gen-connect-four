@@ -8,13 +8,17 @@ use std::io::prelude::*;
 use std::time::Instant;
 
 
+#[allow(dead_code, unused_variables)]
 pub fn main()
 {
-	let filename = "AIValue-7x6.NN";
-	train(filename, 10, 10);
-	play(filename);
-}
+	let filename1 = "AIValue-7x6.NN";
+	let filename2 = "AIValue-7x6-test.NN";
+	train(filename1, 5, 2);
+	play(filename1);
+	//battle(filename1, filename2);
+} //TODO: try optimizer parameters, save evaluator
 
+#[allow(dead_code)]
 pub fn play(filename:&str)
 {
 	let (_, nn) = load_nn(filename);
@@ -22,21 +26,48 @@ pub fn play(filename:&str)
 	game.set_start_player(1);
 	game.set_player1(PlayerType::IO);
 	game.set_player2_nn(PlayerType::AIValue, nn);
-	game.play_many(2, 1);
+	println!("Player X: IO");
+	println!("Player O: AIValue");
+	println!("");
+	let (w, d, l) = game.play_many(2, 1);
+	println!("Results:");
+	println!("Player X wins: {:>6.2}%", w);
+	println!("Draws:         {:>6.2}%", d);
+	println!("Player O wins: {:>6.2}%", l);
 }
 
+#[allow(dead_code)]
+pub fn battle(filename1:&str, filename2:&str)
+{
+	let (_, nn1) = load_nn(filename1);
+	let (_, nn2) = load_nn(filename2);
+	let mut game = Game::new();
+	game.set_start_player(1);
+	game.set_player1_nn(PlayerType::AIValue, nn1);
+	game.set_player2_nn(PlayerType::AIValue, nn2);
+	println!("Player 1: {}", filename1);
+	println!("Player 2: {}", filename2);
+	println!("");
+	let (w, d, l) = game.play_many(2, 1);
+	println!("Results:");
+	println!("Player 1 wins: {:>6.2}%", w);
+	println!("Draws:         {:>6.2}%", d);
+	println!("Player 2 wins: {:>6.2}%", l);
+}
+
+#[allow(dead_code)]
 pub fn train(filename:&str, rounds:u32, gens:u32)
 {
 	//parameters for optimizer
-	let population = 50;
+	let population = 40;
 	let survival = 10;
 	let badsurv = 5;
 	let prob_avg = 0.1;
 	let prob_mut = 0.95;
 	let prob_op = 0.1;
-	let op_range = 0.25;
-	let prob_block = 0.1;
-	let prob_new = 0.1;
+	let op_range = 0.2;
+	let prob_block = 0.2;
+	let prob_new = 0.05;
 	
 	//init NN and optimizer
 	let (mut num_gens, mut nn) = load_nn(filename);
@@ -71,6 +102,7 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 	println!("NN Gen/Opt Gen: {}/{}", nn.get_gen(), num_gens);
 }
 
+#[allow(dead_code)]
 fn load_nn(filename:&str) -> (u32, NN)
 {
 	let nn;
@@ -103,6 +135,7 @@ fn load_nn(filename:&str) -> (u32, NN)
 	(num_gens, nn)
 }
 
+#[allow(dead_code)]
 fn save_nn(filename:&str, num_gens:u32, nn:&NN)
 {
 	//write neural net to file
@@ -152,7 +185,7 @@ impl Evaluator for AIValueEval
 		g.set_player2_nn(PlayerType::AIValue, nn.clone());
 		//play against random
 		g.set_player1(PlayerType::Random);
-		let (_, _, r) = g.play_many(100, 1); //1000?
+		let (_, _, r) = g.play_many(250, 1); //1000?
 		//play against minimax
 		g.set_player1(PlayerType::Minimax);
 		let (_, _, m) = g.play_many(2, 1);
@@ -166,9 +199,9 @@ impl Evaluator for AIValueEval
 		}
 		c /= self.curr_cmp.len() as f64;
 		//score
-		let mut score = r - 50.0; //win against random - 50
+		let mut score = (r - 50.0) * 10.0; //better than random, but higher weight
 		score += m; //win against minimax
-		score += c; //win against comparison player
+		score += c / 50.0; //better than previous self versions, but not too strong weight
 		//return
 		score
 	}

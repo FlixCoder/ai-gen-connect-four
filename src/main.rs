@@ -1,14 +1,10 @@
 mod game;
-
-use game::*;
-use std::time::Instant;
-use std::env;
+mod aivaluegen;
 
 
-#[allow(unreachable_code)]
 fn main()
 {
-	
+	aivaluegen::main();
 }
 
 

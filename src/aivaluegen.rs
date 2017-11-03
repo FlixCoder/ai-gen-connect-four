@@ -30,6 +30,7 @@ pub fn play(filename:&str)
 	println!("Player O: AIValue");
 	println!("");
 	let (w, d, l) = game.play_many(2, 1);
+	println!("");
 	println!("Results:");
 	println!("Player X wins: {:>6.2}%", w);
 	println!("Draws:         {:>6.2}%", d);
@@ -59,14 +60,14 @@ pub fn battle(filename1:&str, filename2:&str)
 pub fn train(filename:&str, rounds:u32, gens:u32)
 {
 	//parameters for optimizer
-	let population = 30;
+	let population = 200;
 	let survival = 4;
 	let badsurv = 1;
 	let prob_avg = 0.1;
-	let prob_mut = 0.9;
-	let prob_op = 0.9;
+	let prob_mut = 0.95;
+	let prob_op = 0.5;
 	let op_range = 0.5;
-	let prob_block = 0.05;
+	let prob_block = 0.1;
 	let prob_new = 0.1;
 	
 	//init NN and optimizer
@@ -112,7 +113,7 @@ fn load_nn(filename:&str) -> (u32, NN)
 	{
 		//create new neural net, as it could not be loaded
 		let n = 7*6;
-		nn = NN::new(n, 2*n, 1, Activation::PELU, Activation::Tanh); //set NN arch here
+		nn = NN::new(n, n, 1, Activation::LRELU, Activation::Tanh); //set NN arch here
 		num_gens = 0;
 	}
 	else

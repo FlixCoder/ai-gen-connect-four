@@ -12,7 +12,7 @@ use std::time::Instant;
 pub fn main()
 {
 	let filename1 = "AIValue-7x6.NN";
-	let filename2 = "AIValue-7x6-test.NN";
+	let filename2 = "AIValue-7x6-bak.NN";
 	train(filename1, 20, 2);
 	play(filename1);
 	//battle(filename1, filename2);
@@ -95,7 +95,8 @@ pub fn test_random(filename:&str)
 }
 
 
-const HIDDEN:u32 = 10;
+const HIDDEN:u32 = 10; //hidden layers' size
+const NUM_CMP:usize = 10; //number of NNs to keep for comparison in the evaluator to evaluate new NNs
 #[allow(dead_code)]
 pub fn train(filename:&str, rounds:u32, gens:u32)
 {
@@ -191,7 +192,6 @@ fn save_nn(filename:&str, num_gens:u32, nn:&NN)
 
 
 
-const NUM_CMP:usize = 10;
 #[derive(Clone)]
 struct AIValueEval
 {
@@ -219,6 +219,9 @@ impl AIValueEval
 
 impl Evaluator for AIValueEval
 {
+	/// Evaluates the neural net as how strong it is against a random, minimax or previous self player it is
+	/// Prefers random and minimax value to stabilize training and avoid overestimation in self play
+	/// Gains value from wins against previous self version to implement constant improvement
 	fn evaluate(&self, nn:&NN) -> f64
 	{
 		let mut g = Game::new();
@@ -239,7 +242,9 @@ impl Evaluator for AIValueEval
 			g.set_player1_nn(PlayerType::AIValue, nn.clone());
 			let (_, d, cl) = g.play_many(2, 1);
 			c += cl + d / 2.0; //add draws as half
-		} //no division by self.curr_cmp.len() to give more comparisons more weight
+		}
+		//no division by self.curr_cmp.len() to give more comparisons more weight
+		c -= self.curr_cmp.len(); //but substraction of must-wins, so it does not lose random performance to get self-play performance (NN always 50%/50% against itself)
 		//score
 		let mut score = (r - 50.0) * 20.0; //betternes against random, adjusted weight
 		score += m * 10.0; //betterness against minimax, adjusted weight

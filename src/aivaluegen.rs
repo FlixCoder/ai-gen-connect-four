@@ -107,8 +107,8 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 	let prob_avg = 0.1;
 	let prob_mut = 0.95;
 	let prob_op = 0.5;
-	let op_range = 0.5;
-	let prob_block = 0.1;
+	let op_range = 0.2;
+	let prob_block = 0.05;
 	let prob_new = 0.1;
 	
 	//init NN and optimizer

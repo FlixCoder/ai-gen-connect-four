@@ -244,7 +244,7 @@ impl Evaluator for AIValueEval
 			c += cl + d / 2.0; //add draws as half
 		}
 		//no division by self.curr_cmp.len() to give more comparisons more weight
-		c -= self.curr_cmp.len(); //but substraction of must-wins, so it does not lose random performance to get self-play performance (NN always 50%/50% against itself)
+		c -= self.curr_cmp.len() as f64; //but substraction of must-wins, so it does not lose random performance to get self-play performance (NN always 50%/50% against itself)
 		//score
 		let mut score = (r - 50.0) * 20.0; //betternes against random, adjusted weight
 		score += m * 10.0; //betterness against minimax, adjusted weight

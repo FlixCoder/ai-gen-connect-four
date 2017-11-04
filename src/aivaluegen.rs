@@ -48,8 +48,8 @@ pub fn battle(filename1:&str, filename2:&str)
 	game.set_start_player(1);
 	game.set_player1_nn(PlayerType::AIValue, nn1);
 	game.set_player2_nn(PlayerType::AIValue, nn2);
-	println!("Player 1: {}", filename1);
-	println!("Player 2: {}", filename2);
+	println!("Player 1: AIValue {}", filename1);
+	println!("Player 2: AIValue {}", filename2);
 	println!("");
 	let (w, d, l) = game.play_many(2, 1);
 	println!("Results:");

@@ -15,10 +15,10 @@ pub fn main()
 	let filename2 = "AIValue-7x6-bak.NN";
 	train(filename1, 20, 2);
 	play(filename1);
-	//battle(filename1, filename2);
-	//test_minimax(filename1);
-	//test_random(filename1);
-} //TODO: try optimizer parameters, save evaluator
+	battle(filename1, filename2);
+	test_minimax(filename1);
+	test_random(filename1);
+} //TODO: try save evaluator?
 
 #[allow(dead_code)]
 pub fn play(filename:&str)

@@ -16,6 +16,8 @@ pub fn main()
 	train(filename1, 20, 2);
 	play(filename1);
 	//battle(filename1, filename2);
+	//test_minimax(filename1);
+	//test_random(filename1);
 } //TODO: try optimizer parameters, save evaluator
 
 #[allow(dead_code)]
@@ -55,6 +57,43 @@ pub fn battle(filename1:&str, filename2:&str)
 	println!("Draws:         {:>6.2}%", d);
 	println!("Player 2 wins: {:>6.2}%", l);
 }
+
+#[allow(dead_code)]
+pub fn test_minimax(filename:&str)
+{
+	let (_, nn) = load_nn(filename);
+	let mut game = Game::new();
+	game.set_start_player(1);
+	game.set_player1(PlayerType::Minimax);
+	game.set_player2_nn(PlayerType::AIValue, nn);
+	println!("Player 1: Minimax");
+	println!("Player 2: AIValue {}", filename);
+	println!("");
+	let (w, d, l) = game.play_many(2, 1);
+	println!("Results:");
+	println!("Player 1 wins: {:>6.2}%", w);
+	println!("Draws:         {:>6.2}%", d);
+	println!("Player 2 wins: {:>6.2}%", l);
+}
+
+#[allow(dead_code)]
+pub fn test_random(filename:&str)
+{
+	let (_, nn) = load_nn(filename);
+	let mut game = Game::new();
+	game.set_start_player(1);
+	game.set_player1(PlayerType::Random);
+	game.set_player2_nn(PlayerType::AIValue, nn);
+	println!("Player 1: Random");
+	println!("Player 2: AIValue {}", filename);
+	println!("");
+	let (w, d, l) = game.play_many(1000, 1);
+	println!("Results:");
+	println!("Player 1 wins: {:>6.2}%", w);
+	println!("Draws:         {:>6.2}%", d);
+	println!("Player 2 wins: {:>6.2}%", l);
+}
+
 
 const HIDDEN:u32 = 10;
 #[allow(dead_code)]

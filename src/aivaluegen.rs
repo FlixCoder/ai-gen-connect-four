@@ -13,7 +13,7 @@ pub fn main()
 {
 	let filename1 = "AIValue-7x6.NN";
 	let filename2 = "AIValue-7x6-test.NN";
-	train(filename1, 5, 2);
+	train(filename1, 20, 2);
 	play(filename1);
 	//battle(filename1, filename2);
 } //TODO: try optimizer parameters, save evaluator
@@ -56,11 +56,12 @@ pub fn battle(filename1:&str, filename2:&str)
 	println!("Player 2 wins: {:>6.2}%", l);
 }
 
+const HIDDEN:u32 = 10;
 #[allow(dead_code)]
 pub fn train(filename:&str, rounds:u32, gens:u32)
 {
 	//parameters for optimizer
-	let population = 200;
+	let population = 250;
 	let survival = 4;
 	let badsurv = 1;
 	let prob_avg = 0.1;
@@ -113,7 +114,7 @@ fn load_nn(filename:&str) -> (u32, NN)
 	{
 		//create new neural net, as it could not be loaded
 		let n = 7*6;
-		nn = NN::new(n, n, 1, Activation::LRELU, Activation::Tanh); //set NN arch here
+		nn = NN::new(n, HIDDEN, 1, Activation::LRELU, Activation::Tanh); //set NN arch here
 		num_gens = 0;
 	}
 	else
@@ -186,7 +187,7 @@ impl Evaluator for AIValueEval
 		g.set_player2_nn(PlayerType::AIValue, nn.clone());
 		//play against random
 		g.set_player1(PlayerType::Random);
-		let (_, d, mut r) = g.play_many(500, 1); //1000?
+		let (_, d, mut r) = g.play_many(1000, 1);
 		r += d / 2.0; //add draws as half
 		//play against minimax
 		g.set_player1(PlayerType::Minimax);

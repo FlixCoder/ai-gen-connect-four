@@ -37,6 +37,7 @@ pub fn play(filename:&str)
 	println!("Player X wins: {:>6.2}%", w);
 	println!("Draws:         {:>6.2}%", d);
 	println!("Player O wins: {:>6.2}%", l);
+	println!("");
 }
 
 #[allow(dead_code)]
@@ -50,12 +51,12 @@ pub fn battle(filename1:&str, filename2:&str)
 	game.set_player2_nn(PlayerType::AIValue, nn2);
 	println!("Player 1: AIValue {}", filename1);
 	println!("Player 2: AIValue {}", filename2);
-	println!("");
 	let (w, d, l) = game.play_many(2, 1);
 	println!("Results:");
 	println!("Player 1 wins: {:>6.2}%", w);
 	println!("Draws:         {:>6.2}%", d);
 	println!("Player 2 wins: {:>6.2}%", l);
+	println!("");
 }
 
 #[allow(dead_code)]
@@ -68,12 +69,12 @@ pub fn test_minimax(filename:&str)
 	game.set_player2_nn(PlayerType::AIValue, nn);
 	println!("Player 1: Minimax");
 	println!("Player 2: AIValue {}", filename);
-	println!("");
 	let (w, d, l) = game.play_many(2, 1);
 	println!("Results:");
 	println!("Player 1 wins: {:>6.2}%", w);
 	println!("Draws:         {:>6.2}%", d);
 	println!("Player 2 wins: {:>6.2}%", l);
+	println!("");
 }
 
 #[allow(dead_code)]
@@ -86,12 +87,12 @@ pub fn test_random(filename:&str)
 	game.set_player2_nn(PlayerType::AIValue, nn);
 	println!("Player 1: Random");
 	println!("Player 2: AIValue {}", filename);
-	println!("");
 	let (w, d, l) = game.play_many(1000, 1);
 	println!("Results:");
 	println!("Player 1 wins: {:>6.2}%", w);
 	println!("Draws:         {:>6.2}%", d);
 	println!("Player 2 wins: {:>6.2}%", l);
+	println!("");
 }
 
 
@@ -108,7 +109,7 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 	let prob_mut = 0.95;
 	let prob_op = 0.5;
 	let op_range = 0.2;
-	let prob_block = 0.05;
+	let prob_block = 0.1;
 	let prob_new = 0.1;
 	
 	//init NN and optimizer
@@ -142,6 +143,7 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 	nn = opt.get_nn();
 	println!("NN blocks: {}", nn.get_blocks());
 	println!("NN Gen/Opt Gen: {}/{}", nn.get_gen(), num_gens);
+	println!("");
 }
 
 #[allow(dead_code)]
@@ -244,7 +246,7 @@ impl Evaluator for AIValueEval
 			c += cl + d / 2.0; //add draws as half
 		}
 		//no division by self.curr_cmp.len() to give more comparisons more weight
-		c -= self.curr_cmp.len() as f64; //but substraction of must-wins, so it does not lose random performance to get self-play performance (NN always 50%/50% against itself)
+		c -= 50.0 * self.curr_cmp.len() as f64; //but substraction of must-wins, so it does not lose random performance to get self-play performance (NN always 50%/50% against itself)
 		//score
 		let mut score = (r - 50.0) * 20.0; //betternes against random, adjusted weight
 		score += m * 10.0; //betterness against minimax, adjusted weight

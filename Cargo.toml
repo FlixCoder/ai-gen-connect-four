@@ -6,6 +6,9 @@ authors = ["FlixCoder"]
 [dependencies]
 rand = "0.3.*"
 ernn = { git = "https://github.com/FlixCoder/EvoResNN.git" }
+serde = "1.*"
+serde_derive = "1.*"
+serde_json = "1.*"
 
 
 [profile.dev]

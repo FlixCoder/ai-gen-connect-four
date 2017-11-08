@@ -13,9 +13,10 @@ pub fn main()
 {
 	let filename1 = "AIValue-7x6.NN";
 	let filename2 = "AIValue-7x6-bak.NN";
-	train(filename1, 20, 1);
+	train(filename1, 20, 2);
+	//print_info(filename1);
 	play(filename1);
-	battle(filename1, filename2);
+	battle(filename2, filename1);
 	test_minimax(filename1);
 	test_random(filename1);
 } //TODO: try save evaluator?
@@ -92,6 +93,15 @@ pub fn test_random(filename:&str)
 	println!("Player 1 wins: {:>6.2}%", w);
 	println!("Draws:         {:>6.2}%", d);
 	println!("Player 2 wins: {:>6.2}%", l);
+	println!("");
+}
+
+#[allow(dead_code)]
+pub fn print_info(filename:&str)
+{
+	let (num_gens, nn) = load_nn(filename);
+	println!("NN blocks: {}", nn.get_blocks());
+	println!("NN Gen/Opt Gen: {}/{}", nn.get_gen(), num_gens);
 	println!("");
 }
 

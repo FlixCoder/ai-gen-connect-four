@@ -14,7 +14,7 @@ pub fn main()
 {
 	let filename1 = "AIValue-7x6.NN";
 	let filename2 = "AIValue-7x6-bak.NN";
-	train(filename1, 20, 2);
+	train(filename1, 10, 2);
 	//print_info(filename1);
 	play(filename1);
 	battle(filename2, filename1);
@@ -108,19 +108,19 @@ pub fn print_info(filename:&str)
 
 
 const HIDDEN:u32 = 10; //hidden layers' size
-const NUM_CMP:usize = 10; //number of NNs to keep for comparison in the evaluator to evaluate new NNs
+const NUM_CMP:usize = 100; //number of NNs to keep for comparison in the evaluator to evaluate new NNs
 #[allow(dead_code)]
 pub fn train(filename:&str, rounds:u32, gens:u32)
 {
 	//parameters for optimizer
-	let population = 250;
+	let population = 200;
 	let survival = 4;
 	let badsurv = 1;
 	let prob_avg = 0.1;
 	let prob_mut = 0.95;
 	let prob_op = 0.5;
-	let op_range = 0.25;
-	let prob_block = 0.05;
+	let op_range = 0.2;
+	let prob_block = 0.1;
 	let prob_new = 0.1;
 	
 	//init NN and optimizer
@@ -258,14 +258,14 @@ impl Evaluator for AIValueEval
 		let mut g = Game::new();
 		g.set_start_player(1);
 		g.set_player2_nn(PlayerType::AIValue, nn.clone());
-		//play against random
-		g.set_player1(PlayerType::Random);
-		let (_, d, mut r) = g.play_many(1000, 1);
-		r += d / 2.0; //add draws as half
 		//play against minimax
 		g.set_player1(PlayerType::Minimax);
 		let (_, d, mut m) = g.play_many(2, 1);
 		m += d / 2.0; //add draws as half
+		//play against random
+		g.set_player1(PlayerType::Random);
+		let (_, d, mut r) = g.play_many(1000, 1);
+		r += d / 2.0; //add draws as half
 		//play against cmp net
 		let mut c = 0.0;
 		for nn in &self.curr_cmp
@@ -274,11 +274,11 @@ impl Evaluator for AIValueEval
 			let (_, d, cl) = g.play_many(2, 1);
 			c += cl + d / 2.0; //add draws as half
 		}
-		//no division by self.curr_cmp.len() to give more comparisons more weight
+		c /= self.curr_cmp.len() as f64;
 		//score
-		let mut score = (r - 50.0) * 20.0; //betternes against random, adjusted weight
-		score += m * 10.0; //betterness against minimax, adjusted weight
-		score += c / 50.0; //betterness against previous self versions, adjusted weight
+		let mut score = m * 10.0; //betterness against minimax, adjusted weight
+		score += (r - 50.0) * 20.0; //betternes against random, adjusted weight
+		score += c / 10.0; //betterness against previous self versions, adjusted weight
 		//return
 		score
 	}

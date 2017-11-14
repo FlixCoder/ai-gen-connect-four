@@ -14,6 +14,7 @@ pub fn main()
 {
 	let filename1 = "AIValue-7x6.NN";
 	let filename2 = "AIValue-7x6-bak.NN";
+	
 	train(filename1, 10, 2);
 	//print_info(filename1);
 	play(filename1);
@@ -25,7 +26,7 @@ pub fn main()
 #[allow(dead_code)]
 pub fn play(filename:&str)
 {
-	let (_, nn, _) = load_nn(filename);
+	let (_, nn, _, _) = load_nn(filename);
 	let mut game = Game::new();
 	game.set_start_player(1);
 	game.set_player1(PlayerType::IO);
@@ -45,8 +46,8 @@ pub fn play(filename:&str)
 #[allow(dead_code)]
 pub fn battle(filename1:&str, filename2:&str)
 {
-	let (_, nn1, _) = load_nn(filename1);
-	let (_, nn2, _) = load_nn(filename2);
+	let (_, nn1, _, _) = load_nn(filename1);
+	let (_, nn2, _, _) = load_nn(filename2);
 	let mut game = Game::new();
 	game.set_start_player(1);
 	game.set_player1_nn(PlayerType::AIValue, nn1);
@@ -64,7 +65,7 @@ pub fn battle(filename1:&str, filename2:&str)
 #[allow(dead_code)]
 pub fn test_minimax(filename:&str)
 {
-	let (_, nn, _) = load_nn(filename);
+	let (_, nn, _, _) = load_nn(filename);
 	let mut game = Game::new();
 	game.set_start_player(1);
 	game.set_player1(PlayerType::Minimax);
@@ -82,7 +83,7 @@ pub fn test_minimax(filename:&str)
 #[allow(dead_code)]
 pub fn test_random(filename:&str)
 {
-	let (_, nn, _) = load_nn(filename);
+	let (_, nn, _, _) = load_nn(filename);
 	let mut game = Game::new();
 	game.set_start_player(1);
 	game.set_player1(PlayerType::Random);
@@ -100,7 +101,7 @@ pub fn test_random(filename:&str)
 #[allow(dead_code)]
 pub fn print_info(filename:&str)
 {
-	let (num_gens, nn, _) = load_nn(filename);
+	let (num_gens, nn, _, _) = load_nn(filename);
 	println!("NN blocks: {}", nn.get_blocks());
 	println!("NN Gen/Opt Gen: {}/{}", nn.get_gen(), num_gens);
 	println!("");
@@ -124,9 +125,16 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 	let prob_new = 0.1;
 	
 	//init NN and optimizer
-	let (mut num_gens, mut nn, mut eval) = load_nn(filename);
-	let mut opt = Optimizer::new(eval.clone(), nn);
-	let mut score = opt.optimize(1, survival+badsurv, survival, badsurv, 0.0, 1.0, prob_op, op_range, prob_block, 0.5); //initial population
+	let (mut num_gens, _, mut eval, mut opt) = load_nn(filename);
+	let mut score;
+	if num_gens == 0
+	{
+		score = opt.optimize(1, survival+badsurv, survival, badsurv, 0.0, 1.0, prob_op, op_range, prob_block, 0.5); //initial population
+	}
+	else
+	{
+		score = opt.reevaluate();
+	}
 	println!("Starting score: {}", score);
 	
 	//optimize
@@ -135,14 +143,13 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 	{
 		score = opt.optimize(gens, population, survival, badsurv, prob_avg, prob_mut, prob_op, op_range, prob_block, prob_new);
 		println!("Generation score: {}", score);
-		nn = opt.get_nn();
+		let nn = opt.get_nn();
 		eval.add_cmp(nn); //moved
 		opt.set_eval(eval.clone());
 		score = opt.reevaluate();
 		//save NN
 		num_gens += gens;
-		nn = opt.get_nn();
-		save_nn(filename, num_gens, &nn, &eval);
+		save_nn(filename, num_gens, &eval, &opt);
 	}
 	println!("End score: {}", score);
 	let elapsed = now.elapsed();
@@ -150,52 +157,57 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 	println!("Time: {} min {:.3} s", (sec / 60.0).floor(), sec % 60.0);
 	
 	//print information
-	nn = opt.get_nn();
+	let nn = opt.get_nn();
 	println!("NN blocks: {}", nn.get_blocks());
 	println!("NN Gen/Opt Gen: {}/{}", nn.get_gen(), num_gens);
 	println!("");
 }
 
 #[allow(dead_code)]
-fn load_nn(filename:&str) -> (u32, NN, AIValueEval)
+fn load_nn(filename:&str) -> (u32, NN, AIValueEval, Optimizer<AIValueEval>)
 {
 	let num_gens;
 	let nn;
 	let eval;
+	let mut opt;
+	
+	let n = 7*6;
 	let file = File::open(filename);
 	if file.is_err()
 	{
 		//create new neural net, as it could not be loaded
-		let n = 7*6;
 		num_gens = 0;
-		nn = NN::new(n, HIDDEN, 1, Activation::LRELU, Activation::Tanh); //set NN arch here
+		let nn = NN::new(n, HIDDEN, 1, Activation::LRELU, Activation::Tanh); //set NN arch here
 		eval = AIValueEval::new(nn.clone());
+		opt = Optimizer::new(eval.clone(), nn);
 	}
 	else
 	{
 		//load neural net from file (and number of generations)
 		let mut reader = BufReader::new(file.unwrap());
 		let mut datas = String::new();
-		let mut nns = String::new();
 		let mut evals = String::new();
+		let mut opts = String::new();
 		
 		let res1 = reader.read_line(&mut datas);
-		let res2 = reader.read_line(&mut nns);
-		let res3 = reader.read_line(&mut evals);
+		let res2 = reader.read_line(&mut evals);
+		let res3 = reader.read_line(&mut opts);
 		if res1.is_err() || res2.is_err() || res3.is_err() { panic!("Error reading AIValue NN file!"); }
 		
 		let res = datas.trim().parse::<u32>();
 		if res.is_err() { panic!("Error parsing AIValue NN file!"); }
 		num_gens = res.unwrap();
-		nn = NN::from_json(&nns);
 		eval = AIValueEval::from_json(&evals);
+		opt = Optimizer::new(eval.clone(), NN::new(n, 1, 1, Activation::Linear, Activation::Tanh)); //NN will get dropped in load_population (but evaluated once)
+		opt.load_population(&opts);
 	}
 	//return
-	(num_gens, nn, eval)
+	nn = opt.get_nn();
+	(num_gens, nn, eval, opt)
 }
 
 #[allow(dead_code)]
-fn save_nn(filename:&str, num_gens:u32, nn:&NN, eval:&AIValueEval)
+fn save_nn(filename:&str, num_gens:u32, eval:&AIValueEval, opt:&Optimizer<AIValueEval>)
 {
 	//write neural net to file
 	let file = File::create(filename);
@@ -203,8 +215,8 @@ fn save_nn(filename:&str, num_gens:u32, nn:&NN, eval:&AIValueEval)
 	let mut writer = BufWriter::new(file.unwrap());
 	
 	let res1 = writeln!(&mut writer, "{}", num_gens);
-	let res2 = writeln!(&mut writer, "{}", nn.to_json());
-	let res3 = writeln!(&mut writer, "{}", eval.to_json());
+	let res2 = writeln!(&mut writer, "{}", eval.to_json());
+	let res3 = writeln!(&mut writer, "{}", opt.save_population());
 	if res1.is_err() || res2.is_err() || res3.is_err() { eprintln!("Warning: There was an error while writing AIValue NN file!"); return; }
 }
 

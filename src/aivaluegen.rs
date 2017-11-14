@@ -16,11 +16,11 @@ pub fn main()
 	let filename2 = "AIValue-7x6-bak.NN";
 	
 	train(filename1, 5, 2);
-	//print_info(filename1);
 	play(filename1);
 	battle(filename2, filename1);
 	test_minimax(filename1);
 	test_random(filename1);
+	print_info(filename1);
 }
 
 #[allow(dead_code)]
@@ -101,7 +101,8 @@ pub fn test_random(filename:&str)
 #[allow(dead_code)]
 pub fn print_info(filename:&str)
 {
-	let (num_gens, nn, _, _) = load_nn(filename);
+	let (num_gens, nn, _, opt) = load_nn(filename);
+	println!("NN score: {}", opt.get_population()[0].1);
 	println!("NN blocks: {}", nn.get_blocks());
 	println!("NN Gen/Opt Gen: {}/{}", nn.get_gen(), num_gens);
 	println!("");

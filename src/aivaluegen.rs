@@ -15,7 +15,7 @@ pub fn main()
 	let filename1 = "AIValue-7x6.NN";
 	let filename2 = "AIValue-7x6-bak.NN";
 	
-	train(filename1, 10, 2);
+	train(filename1, 5, 2);
 	//print_info(filename1);
 	play(filename1);
 	battle(filename2, filename1);
@@ -117,19 +117,19 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 	let population = 200;
 	let survival = 4;
 	let badsurv = 1;
-	let prob_avg = 0.1;
-	let prob_mut = 0.95;
+	let prob_avg = 0.1; //keep
+	let prob_mut = 0.95; //keep
+	let prob_new = 0.1; //keep
+	let prob_block = 0.1;
 	let prob_op = 0.5;
 	let op_range = 0.2;
-	let prob_block = 0.1;
-	let prob_new = 0.1;
 	
 	//init NN and optimizer
 	let (mut num_gens, _, mut eval, mut opt) = load_nn(filename);
 	let mut score;
 	if num_gens == 0
 	{
-		score = opt.optimize(1, survival+badsurv, survival, badsurv, 0.0, 1.0, prob_op, op_range, prob_block, 0.5); //initial population
+		score = opt.gen_population(survival+badsurv); //initial population
 	}
 	else
 	{
@@ -141,7 +141,7 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 	let now = Instant::now();
 	for _ in 0..rounds
 	{
-		score = opt.optimize(gens, population, survival, badsurv, prob_avg, prob_mut, prob_op, op_range, prob_block, prob_new);
+		score = opt.optimize(gens, population, survival, badsurv, prob_avg, prob_mut, prob_new, prob_block, prob_op, op_range);
 		println!("Generation score: {}", score);
 		let nn = opt.get_nn();
 		eval.add_cmp(nn); //moved
@@ -241,7 +241,7 @@ impl AIValueEval
 	{
 		if self.curr_cmp.len() >= NUM_CMP
 		{
-			self.curr_cmp.remove(1);
+			self.curr_cmp.remove(0);
 		}
 		self.curr_cmp.push(nn);
 	}
@@ -290,7 +290,7 @@ impl Evaluator for AIValueEval
 		//score
 		let mut score = m * 10.0; //betterness against minimax, adjusted weight
 		score += (r - 50.0) * 20.0; //betternes against random, adjusted weight
-		score += c / 10.0; //betterness against previous self versions, adjusted weight
+		score += c / 100.0; //betterness against previous self versions, adjusted weight //10.0?
 		//return
 		score
 	}

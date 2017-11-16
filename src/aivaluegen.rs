@@ -294,8 +294,8 @@ impl Evaluator for AIValueEval
 		c /= self.curr_cmp.len() as f64;
 		//score
 		let mut score = m * 10.0; //betterness against minimax, adjusted weight
-		score += (r - 50.0) * 20.0; //betternes against random, adjusted weight
-		score += c / 100.0; //betterness against previous self versions, adjusted weight, so weight matches random deviation //bak: 10.0
+		score += r * 10.0; //betternes against random, adjusted weight
+		score += c / 10.0; //betterness against previous self versions, adjusted weight, so weight matches random deviation //bak: 10.0
 		//return
 		score
 	}

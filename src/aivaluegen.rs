@@ -145,7 +145,7 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 		score = opt.optimize(gens, population, survival, badsurv, prob_avg, prob_mut, prob_new, prob_block, prob_op, op_range);
 		println!("Generation score: {}", score);
 		let nn = opt.get_nn();
-		eval.add_cmp(nn); //moved
+		eval.add_cmp(nn); //nn moved into func
 		opt.set_eval(eval.clone());
 		score = opt.reevaluate();
 		//save NN
@@ -240,11 +240,15 @@ impl AIValueEval
 	
 	pub fn add_cmp(&mut self, nn:NN)
 	{
-		if self.curr_cmp.len() >= NUM_CMP
-		{
-			self.curr_cmp.remove(0);
+		let len = self.curr_cmp.len();
+		if self.curr_cmp[len - 1] != nn
+		{ //add only if the same net is not already in there (just check last added net)
+			if len >= NUM_CMP
+			{
+				self.curr_cmp.remove(0);
+			}
+			self.curr_cmp.push(nn);
 		}
-		self.curr_cmp.push(nn);
 	}
 	
 	/// Encodes the evaluator as a JSON string.

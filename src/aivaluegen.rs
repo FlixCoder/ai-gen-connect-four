@@ -15,7 +15,7 @@ pub fn main()
 	let filename1 = "AIValue-7x6.NN";
 	let filename2 = "AIValue-7x6-bak.NN";
 	
-	train(filename1, 5, 2);
+	train(filename1, 10, 2, true);
 	play(filename1);
 	battle(filename2, filename1);
 	test_minimax(filename1);
@@ -112,7 +112,7 @@ pub fn print_info(filename:&str)
 const HIDDEN:u32 = 10; //hidden layers' size
 const NUM_CMP:usize = 100; //number of NNs to keep for comparison in the evaluator to evaluate new NNs
 #[allow(dead_code)]
-pub fn train(filename:&str, rounds:u32, gens:u32)
+pub fn train(filename:&str, rounds:u32, gens:u32, par:bool)
 {
 	//parameters for optimizer
 	let population = 200;
@@ -134,7 +134,7 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 	}
 	else
 	{
-		score = opt.reevaluate();
+		score = opt.reevaluate(); //_par?
 	}
 	println!("Starting score: {}", score);
 	
@@ -142,12 +142,14 @@ pub fn train(filename:&str, rounds:u32, gens:u32)
 	let now = Instant::now();
 	for _ in 0..rounds
 	{
-		score = opt.optimize(gens, population, survival, badsurv, prob_avg, prob_mut, prob_new, prob_block, prob_op, op_range);
+		if par { score = opt.optimize_par(gens, population, survival, badsurv, prob_avg, prob_mut, prob_new, prob_block, prob_op, op_range); }
+		else { score = opt.optimize(gens, population, survival, badsurv, prob_avg, prob_mut, prob_new, prob_block, prob_op, op_range); }
 		println!("Generation score: {}", score);
 		let nn = opt.get_nn();
 		eval.add_cmp(nn); //nn moved into func
 		opt.set_eval(eval.clone());
-		score = opt.reevaluate();
+		if par { score = opt.reevaluate_par(); }
+		else { score = opt.reevaluate(); }
 		//save NN
 		num_gens += gens;
 		save_nn(filename, num_gens, &eval, &opt);

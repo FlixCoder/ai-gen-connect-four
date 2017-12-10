@@ -15,7 +15,7 @@ pub fn main()
 	let filename1 = "AIValue-7x6.NN";
 	let filename2 = "AIValue-7x6-bak.NN";
 	
-	train(filename1, 10, 2, true);
+	train(filename1, 10, 2, false);
 	play(filename1);
 	battle(filename2, filename1);
 	test_minimax(filename1);

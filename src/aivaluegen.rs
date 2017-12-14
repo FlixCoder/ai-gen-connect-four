@@ -15,7 +15,7 @@ pub fn main()
 	let filename1 = "AIValue-7x6.NN";
 	let filename2 = "AIValue-7x6-bak.NN";
 	
-	train(filename1, 10, 2, false);
+	train(filename1, 10, 2, true);
 	play(filename1);
 	battle(filename2, filename1);
 	test_minimax(filename1);
@@ -109,7 +109,7 @@ pub fn print_info(filename:&str)
 }
 
 
-const HIDDEN:u32 = 10; //hidden layers' size
+const HIDDEN:u32 = 3; //hidden layers' size
 const NUM_CMP:usize = 100; //number of NNs to keep for comparison in the evaluator to evaluate new NNs
 #[allow(dead_code)]
 pub fn train(filename:&str, rounds:u32, gens:u32, par:bool)
@@ -180,7 +180,7 @@ fn load_nn(filename:&str) -> (u32, NN, AIValueEval, Optimizer<AIValueEval>)
 	{
 		//create new neural net, as it could not be loaded
 		num_gens = 0;
-		let nn = NN::new(n, HIDDEN, 1, Activation::LRELU, Activation::Tanh); //set NN arch here
+		let nn = NN::new(n, HIDDEN, 1, Activation::RELU, Activation::Tanh); //set NN arch here
 		eval = AIValueEval::new(nn.clone());
 		opt = Optimizer::new(eval.clone(), nn);
 	}

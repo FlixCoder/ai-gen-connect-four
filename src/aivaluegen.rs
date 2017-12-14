@@ -109,7 +109,7 @@ pub fn print_info(filename:&str)
 }
 
 
-const HIDDEN:u32 = 3; //hidden layers' size
+const HIDDEN:u32 = 5; //hidden layers' size
 const NUM_CMP:usize = 100; //number of NNs to keep for comparison in the evaluator to evaluate new NNs
 #[allow(dead_code)]
 pub fn train(filename:&str, rounds:u32, gens:u32, par:bool)
@@ -121,7 +121,7 @@ pub fn train(filename:&str, rounds:u32, gens:u32, par:bool)
 	let prob_avg = 0.1; //keep
 	let prob_mut = 0.95; //keep
 	let prob_new = 0.1; //keep
-	let prob_block = 0.1;
+	let prob_block = 0.02;
 	let prob_op = 0.5;
 	let op_range = 0.2;
 	

@@ -109,7 +109,7 @@ pub fn print_info(filename:&str)
 }
 
 
-const HIDDEN:u32 = 5; //hidden layers' size
+const HIDDEN:u32 = 10; //hidden layers' size
 const NUM_CMP:usize = 100; //number of NNs to keep for comparison in the evaluator to evaluate new NNs
 #[allow(dead_code)]
 pub fn train(filename:&str, rounds:u32, gens:u32, par:bool)

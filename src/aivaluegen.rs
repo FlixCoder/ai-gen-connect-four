@@ -15,7 +15,7 @@ pub fn main()
 	let filename1 = "AIValue-7x6.NN";
 	let filename2 = "AIValue-7x6-bak.NN";
 	
-	train(filename1, 10, 2, true);
+	train(filename1, 25, 2, true);
 	play(filename1);
 	battle(filename2, filename1);
 	test_minimax(filename1);
@@ -122,8 +122,8 @@ pub fn train(filename:&str, rounds:u32, gens:u32, par:bool)
 	let prob_mut = 0.95; //keep
 	let prob_new = 0.1; //keep
 	let prob_block = 0.02;
-	let prob_op = 0.5;
-	let op_range = 0.2;
+	let prob_op = 0.2;
+	let op_range = 0.1;
 	
 	//init NN and optimizer
 	let (mut num_gens, _, mut eval, mut opt) = load_nn(filename);

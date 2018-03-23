@@ -15,7 +15,8 @@ pub fn main()
 	let filename1 = "AIValue-7x6.NN";
 	let filename2 = "AIValue-7x6-bak.NN";
 	
-	train(filename1, 25, 2, true);
+	//train(filename1, 10, 2, false); //serial
+	train(filename1, 25, 2, true); //parallel
 	play(filename1);
 	battle(filename2, filename1);
 	test_minimax(filename1);
@@ -109,21 +110,21 @@ pub fn print_info(filename:&str)
 }
 
 
-const HIDDEN:u32 = 10; //hidden layers' size
+const HIDDEN:u32 = 10; //hidden layers' size (5, 10 or 20?) (aim for 0 to 2 additional blocks in optimization parameters, depending on layer size)
 const NUM_CMP:usize = 100; //number of NNs to keep for comparison in the evaluator to evaluate new NNs
 #[allow(dead_code)]
 pub fn train(filename:&str, rounds:u32, gens:u32, par:bool)
 {
 	//parameters for optimizer
 	let population = 200;
-	let survival = 4;
-	let badsurv = 1;
+	let survival = 8; //bak: 4 //TODO optimize?
+	let badsurv = 2; //bak: 1 //TODO optimize?
 	let prob_avg = 0.1; //keep
 	let prob_mut = 0.95; //keep
 	let prob_new = 0.1; //keep
-	let prob_block = 0.02;
-	let prob_op = 0.2;
-	let op_range = 0.1;
+	let prob_block = 0.01; //TODO optimize?
+	let prob_op = 0.25; //TODO optimize?
+	let op_range = 0.25; //TODO optimize?
 	
 	//init NN and optimizer
 	let (mut num_gens, _, mut eval, mut opt) = load_nn(filename);
@@ -140,11 +141,11 @@ pub fn train(filename:&str, rounds:u32, gens:u32, par:bool)
 	
 	//optimize
 	let now = Instant::now();
-	for _ in 0..rounds
+	for i in 0..rounds
 	{
 		if par { score = opt.optimize_par(gens, population, survival, badsurv, prob_avg, prob_mut, prob_new, prob_block, prob_op, op_range); }
 		else { score = opt.optimize(gens, population, survival, badsurv, prob_avg, prob_mut, prob_new, prob_block, prob_op, op_range); }
-		println!("Generation score: {}", score);
+		println!("#{}: Generation score: {}", i + 1, score);
 		let nn = opt.get_nn();
 		eval.add_cmp(nn); //nn moved into func
 		opt.set_eval(eval.clone());
@@ -269,8 +270,8 @@ impl AIValueEval
 
 impl Evaluator for AIValueEval
 {
-	/// Evaluates the neural net as how strong it is against a random, minimax or previous self player it is
-	/// Prefers random and minimax value to stabilize training and avoid overestimation in self play
+	/// Evaluates the neural net as how strong it is against a random, minimax or previous self players
+	/// Uses random and minimax value to stabilize training and avoid overestimation in self play
 	/// Gains value from wins against previous self version to implement constant improvement
 	fn evaluate(&self, nn:&NN) -> f64
 	{
@@ -283,9 +284,9 @@ impl Evaluator for AIValueEval
 		m += d / 2.0; //add draws as half
 		//play against random
 		g.set_player1(PlayerType::Random);
-		let (_, d, mut r) = g.play_many(1000, 1);
+		let (_, d, mut r) = g.play_many(1000, 1); //TODO 500 sufficient?
 		r += d / 2.0; //add draws as half
-		//play against cmp net
+		//play against cmp nets
 		let mut c = 0.0;
 		for nn in &self.curr_cmp
 		{
@@ -294,10 +295,10 @@ impl Evaluator for AIValueEval
 			c += cl + d / 2.0; //add draws as half
 		}
 		c /= self.curr_cmp.len() as f64;
-		//score
+		//calculate evaluation score from game scores (minimax and random equally weighted, self/cmp play lower weighted)
 		let mut score = m * 10.0; //betterness against minimax, adjusted weight
-		score += r * 10.0; //betternes against random, adjusted weight
-		score += c / 10.0; //betterness against previous self versions, adjusted weight, so weight matches random deviation //bak: 10.0
+		score += r.round() * 10.0; //betterness against random, adjusted weight
+		score += c / 10.0; //betterness against previous self versions, adjusted weight
 		//return
 		score
 	}

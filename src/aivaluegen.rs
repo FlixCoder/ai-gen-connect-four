@@ -91,7 +91,7 @@ pub fn test_random(filename:&str)
 	game.set_player2_nn(PlayerType::AIValue, nn);
 	println!("Player 1: Random");
 	println!("Player 2: AIValue {}", filename);
-	let (w, d, l) = game.play_many(1000, 1);
+	let (w, d, l) = game.play_many(10000, 1);
 	println!("Results:");
 	println!("Player 1 wins: {:>6.2}%", w);
 	println!("Draws:         {:>6.2}%", d);
@@ -110,21 +110,21 @@ pub fn print_info(filename:&str)
 }
 
 
-const HIDDEN:u32 = 10; //hidden layers' size (5, 10 or 20?) (aim for 0 to 2 additional blocks in optimization parameters, depending on layer size)
-const NUM_CMP:usize = 100; //number of NNs to keep for comparison in the evaluator to evaluate new NNs
+const HIDDEN:u32 = 8; //hidden layers' size (5-20?) (aim for 0 to 2 additional blocks in optimization parameters?)
+const NUM_CMP:usize = 100; //number of NNs to keep for comparison in the evaluator to evaluate new NNs //TODO optimize?
 #[allow(dead_code)]
 pub fn train(filename:&str, rounds:u32, gens:u32, par:bool)
 {
 	//parameters for optimizer
 	let population = 200;
-	let survival = 8; //bak: 4 //TODO optimize?
-	let badsurv = 2; //bak: 1 //TODO optimize?
+	let survival = 8; //bak: 4
+	let badsurv = 2; //bak: 1
 	let prob_avg = 0.1; //keep
 	let prob_mut = 0.95; //keep
 	let prob_new = 0.1; //keep
 	let prob_block = 0.01; //TODO optimize?
-	let prob_op = 0.25; //TODO optimize?
-	let op_range = 0.25; //TODO optimize?
+	let prob_op = 0.2; //TODO optimize?
+	let op_range = 0.2; //TODO optimize?
 	
 	//init NN and optimizer
 	let (mut num_gens, _, mut eval, mut opt) = load_nn(filename);
@@ -284,7 +284,7 @@ impl Evaluator for AIValueEval
 		m += d / 2.0; //add draws as half
 		//play against random
 		g.set_player1(PlayerType::Random);
-		let (_, d, mut r) = g.play_many(1000, 1); //TODO 500 sufficient?
+		let (_, d, mut r) = g.play_many(1000, 1);
 		r += d / 2.0; //add draws as half
 		//play against cmp nets
 		let mut c = 0.0;

@@ -123,8 +123,8 @@ pub fn train(filename:&str, rounds:u32, gens:u32, par:bool)
 	let prob_mut = 0.95; //keep
 	let prob_new = 0.1; //keep
 	let prob_block = 0.01; //TODO optimize?
-	let prob_op = 0.2; //TODO optimize?
-	let op_range = 0.2; //TODO optimize?
+	let prob_op = 0.25; //TODO optimize?
+	let op_range = 0.1; //TODO optimize?
 	
 	//init NN and optimizer
 	let (mut num_gens, _, mut eval, mut opt) = load_nn(filename);

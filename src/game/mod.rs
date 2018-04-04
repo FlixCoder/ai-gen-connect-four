@@ -52,6 +52,15 @@ impl Game
 			_ => None,
 		}
 	}
+
+	fn map_player_nn_deep(p:PlayerType, nn:NN, deep:u32) -> Option<Box<Player>>
+	{
+		match p
+		{
+			PlayerType::AIValue => Some(PlayerAIValue::new_deep(nn, deep)),
+			_ => None,
+		}
+	}
 	
 	pub fn set_player1(&mut self, p:PlayerType) -> bool
 	{
@@ -101,6 +110,36 @@ impl Game
 	pub fn set_player2_nn(&mut self, p:PlayerType, nn:NN) -> bool
 	{
 		self.p2 = Game::map_player_nn(p, nn);
+		
+		if self.p2.is_some()
+		{
+			if !self.p2.as_mut().unwrap().init(&self.field, 2)
+			{
+				self.p2 = None;
+				return false;
+			}
+		}
+		true
+	}
+
+	pub fn set_player1_nn_deep(&mut self, p:PlayerType, nn:NN, deep:u32) -> bool
+	{
+		self.p1 = Game::map_player_nn_deep(p, nn, deep);
+		
+		if self.p1.is_some()
+		{
+			if !self.p1.as_mut().unwrap().init(&self.field, 1)
+			{
+				self.p1 = None;
+				return false;
+			}
+		}
+		true
+	}
+	
+	pub fn set_player2_nn_deep(&mut self, p:PlayerType, nn:NN, deep:u32) -> bool
+	{
+		self.p2 = Game::map_player_nn_deep(p, nn, deep);
 		
 		if self.p2.is_some()
 		{

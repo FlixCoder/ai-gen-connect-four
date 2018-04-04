@@ -8,7 +8,7 @@ use super::Player;
 use super::super::field::Field;
 use std::f64;
 
-const DEEPNESS:u32 = 3; //recursion limit
+const DEEPNESS:u32 = 3; //default recursion limit
 
 //values for a won or lost game in minimax and heuristic (neural net outputs should be a lot closer to zero)
 const VAL_MAX:f64 = 10002.0; //f64::MAX
@@ -20,14 +20,26 @@ pub struct PlayerAIValue
 	initialized: bool,
 	pid: i32, //player ID
 	startp: i32, //starting player
+	deepness: u32, //minimax search depth
 	nn: Option<NN>, //neural network for neutral state evaluation (value based on starting player)
 }
 
 impl PlayerAIValue
 {
+	///creates a new AI Player, which uses a value NN, uses default minimax depth
+	///net = neural net to evualuate positions
 	pub fn new(net:NN) -> Box<PlayerAIValue>
 	{
-		Box::new(PlayerAIValue { initialized: false, pid: 0, startp: 0, nn: Some(net) })
+		PlayerAIValue::new_deep(net, DEEPNESS)
+	}
+
+	///creates a new AI Player, which uses a value NN
+	///net = neural net to evualuate positions
+	///deep = minimax deepness: pass 0 to use default deepness
+	pub fn new_deep(net:NN, mut deep:u32) -> Box<PlayerAIValue>
+	{
+		if deep < 1 { deep = DEEPNESS; } //change invalid depth into default
+		Box::new(PlayerAIValue { initialized: false, pid: 0, startp: 0, deepness: deep, nn: Some(net) })
 	}
 	
 	//raw field
@@ -70,7 +82,7 @@ impl PlayerAIValue
 	fn minimax(&self, field:&mut Field, p:i32, deep:u32) -> f64
 	{
 		let op = if p == 1 {2} else {1};
-		if deep > DEEPNESS { return self.heur(field, if deep%2 == 0 {op} else {p}, deep); } //leaf node -> return evaluated heuristic, mechanism to get heur always for same player
+		if deep > self.deepness { return self.heur(field, if deep%2 == 0 {op} else {p}, deep); } //leaf node -> return evaluated heuristic, mechanism to get heur always for same player
 		let state = field.get_state(); //return early on game end
 		if state == -1 { return 0.0; }
 		else if state == p { return if deep%2 == 0 {VAL_MIN + deep as f64} else {VAL_MAX - deep as f64}; }
@@ -96,10 +108,13 @@ impl PlayerAIValue
 
 impl Player for PlayerAIValue
 {
+	///initializes the player with game information
+	///field = field object to play on
+	///p = player id (1 or 2(?))
 	#[allow(unused_variables)]
 	fn init(&mut self, field:&Field, p:i32) -> bool
 	{
-		if DEEPNESS < 1 { return false; } //invalid player, could cause bugs else
+		if self.deepness < 1 { return false; } //invalid player, could cause bugs else
 		
 		self.pid = p;
 		

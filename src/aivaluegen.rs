@@ -13,25 +13,27 @@ use super::serde_json;
 pub fn main()
 {
 	let filename1 = "AIValue-7x6.NN";
-	let filename2 = "AIValue-7x6-bak.NN";
+	let filename2 = "AIValue-7x6-20.NN";
 	
 	//train(filename1, 10, 2, false); //serial
 	train(filename1, 25, 2, true); //parallel
-	play(filename1);
+	play(filename1, 0);
+	//play(filename1, 9);
 	battle(filename2, filename1);
 	test_minimax(filename1);
 	test_random(filename1);
 	print_info(filename1);
 }
 
+///deep: pass 0 to use default deepness (3, same as in training, evaluation, etc.)
 #[allow(dead_code)]
-pub fn play(filename:&str)
+pub fn play(filename:&str, deep:u32)
 {
 	let (_, nn, _, _) = load_nn(filename);
 	let mut game = Game::new();
 	game.set_start_player(1);
 	game.set_player1(PlayerType::IO);
-	game.set_player2_nn(PlayerType::AIValue, nn);
+	game.set_player2_nn_deep(PlayerType::AIValue, nn, deep);
 	println!("Player X: IO");
 	println!("Player O: AIValue");
 	println!("");
@@ -110,20 +112,20 @@ pub fn print_info(filename:&str)
 }
 
 
-const HIDDEN:u32 = 8; //hidden layers' size (5-20?) (aim for 0 to 2 additional blocks in optimization parameters?)
+const HIDDEN:u32 = 25; //hidden layers' size
 const NUM_CMP:usize = 100; //number of NNs to keep for comparison in the evaluator to evaluate new NNs //TODO optimize?
 #[allow(dead_code)]
 pub fn train(filename:&str, rounds:u32, gens:u32, par:bool)
 {
 	//parameters for optimizer
-	let population = 200;
-	let survival = 8; //bak: 4
-	let badsurv = 2; //bak: 1
+	let population = 200; //TODO optimize?
+	let survival = 8; //bak: 4 //TODO optimize?
+	let badsurv = 2; //bak: 1 //TODO optimize?
 	let prob_avg = 0.1; //keep
 	let prob_mut = 0.95; //keep
 	let prob_new = 0.1; //keep
-	let prob_block = 0.01; //TODO optimize?
-	let prob_op = 0.25; //TODO optimize?
+	let prob_block = 0.01; //TODO optimize? (aim for 0 to 2 additional blocks?)
+	let prob_op = 0.2; //TODO optimize?
 	let op_range = 0.1; //TODO optimize?
 	
 	//init NN and optimizer
@@ -284,7 +286,7 @@ impl Evaluator for AIValueEval
 		m += d / 2.0; //add draws as half
 		//play against random
 		g.set_player1(PlayerType::Random);
-		let (_, d, mut r) = g.play_many(1000, 1);
+		let (_, d, mut r) = g.play_many(250, 1);
 		r += d / 2.0; //add draws as half
 		//play against cmp nets
 		let mut c = 0.0;
@@ -296,7 +298,8 @@ impl Evaluator for AIValueEval
 		}
 		c /= self.curr_cmp.len() as f64;
 		//calculate evaluation score from game scores (minimax and random equally weighted, self/cmp play lower weighted)
-		let mut score = m * 10.0; //betterness against minimax, adjusted weight
+		let mut score = 0.0; //evaluation score
+		score += m; //betterness against minimax, adjusted weight
 		score += r.round() * 10.0; //betterness against random, adjusted weight
 		score += c / 10.0; //betterness against previous self versions, adjusted weight
 		//return

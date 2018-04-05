@@ -286,7 +286,7 @@ impl Evaluator for AIValueEval
 		m += d / 2.0; //add draws as half
 		//play against random
 		g.set_player1(PlayerType::Random);
-		let (_, d, mut r) = g.play_many(250, 1);
+		let (_, d, mut r) = g.play_many(1000, 1);
 		r += d / 2.0; //add draws as half
 		//play against cmp nets
 		let mut c = 0.0;
@@ -299,7 +299,7 @@ impl Evaluator for AIValueEval
 		c /= self.curr_cmp.len() as f64;
 		//calculate evaluation score from game scores (minimax and random equally weighted, self/cmp play lower weighted)
 		let mut score = 0.0; //evaluation score
-		score += m; //betterness against minimax, adjusted weight
+		score += m * 10.0; //betterness against minimax, adjusted weight
 		score += r.round() * 10.0; //betterness against random, adjusted weight
 		score += c / 10.0; //betterness against previous self versions, adjusted weight
 		//return

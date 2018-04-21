@@ -58,7 +58,7 @@ impl PlayerAIValue
 		input
 	}
 	
-	//returns value of board position: +1.0 player wins, -1.0 other player wins, 0.0 draw or even board
+	//returns value of board position: +1.0 player wins, -1.0 other player wins, 0.0 draw or even board (for tanh output)
 	fn heur(&self, field:&mut Field, p:i32, deep:u32) -> f64 //p = player. translated from start player by (value * -1) if they are not same.
 	{
 		let op = if p == 1 {2} else {1};
